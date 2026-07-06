@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import requests
+from pathlib import Path
 
 load_dotenv()
 
@@ -11,8 +12,13 @@ INSTANCE = os.getenv("INSTANCE")
 if not all([API_KEY_EVO, BASE_URL, INSTANCE]):
     raise RuntimeError("Variáveis de ambiente faltando. Verifique API_KEY_EVO, BASE_URL e INSTANCE no .env")
 
+
 URL_GET_MESSAGES = f"{BASE_URL}/chat/findMessages/{INSTANCE}"
 URL_SEND_MESSAGES = f"{BASE_URL}/message/sendText/{INSTANCE}"
+
+# criando diretorio das conversas
+CONVERSATIONS_DIR = Path("data/conversations")
+CONVERSATIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 HEADERS = {
     "apikey": API_KEY_EVO,

@@ -1,50 +1,31 @@
-import json
 from services.evolution import get_messages
-from bot.messages import process_message, build_history
-from config import INSTANCE
-
-def save_messages_to_json(messages, filename=None):
-    """
-    Salva as mensagens em um arquivo JSON.
-    Se nenhum nome de arquivo for fornecido, gera:
-    name_instance_historico_msg.json
-    """
-    filename = filename or f"{INSTANCE}_historico_msg.json"
-
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(messages, f, ensure_ascii=False, indent=4)
-
-    return filename
+from bot.processor import process_message
+from storage.conversations import save_conversation
 
 
 def main():
-    registros = get_messages()
+    raw_messages = get_messages()
 
-    mensagens_processadas = []
-    mensagens_ignoradas = 0
+    processed_count = 0
+    ignored_count = 0
 
-    for registro in registros:
-        mensagem = process_message(registro)
-        # print(mensagem)
-        if mensagem is None:
-            mensagens_ignoradas += 1
-            print(
-                f"Mensagem ignorada (tipo diferente de texto): "
-                f"{registro.get('messageType')}"
-            )
+    for raw_message in raw_messages:
+        processed_message = process_message(raw_message)
+
+        if processed_message is None:
+            ignored_count += 1
+
+            message_type = raw_message.get("messageType")
+            print(f"Mensagem ignorada (tipo diferente de texto): {message_type}")
+
             continue
 
-        mensagens_processadas.append(mensagem)
+        save_conversation(processed_message)
+        processed_count += 1
 
-    historico = build_history(mensagens_processadas)
-
-    print(f"Mensagens processadas: {len(mensagens_processadas)}")
-    print(f"Mensagens ignoradas: {mensagens_ignoradas}")
-    print(f"Contatos encontrados: {len(historico)}")
-
-    arquivo = save_messages_to_json(historico)
-
-    print(f"Histórico salvo em: {arquivo}")
+    print(f"\nResumo:")
+    print(f"- Processadas: {processed_count}")
+    print(f"- Ignoradas: {ignored_count}")
 
 
 if __name__ == "__main__":
