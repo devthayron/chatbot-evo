@@ -14,6 +14,21 @@ def get_messages(payload: dict | None = None) -> list:
     data = response.json()
     return data["messages"]["records"]
 
+
+def get_messages_by_number(number: str) -> list:
+    """Obtém o histórico de mensagens da Evolution API filtrado por um número específico."""
+
+    payload = {
+        "where": {
+            "key": {
+                "remoteJid": f"{number}@s.whatsapp.net"
+            }
+        }
+    }
+
+    return get_messages(payload)
+
+
 def send_message(number: str, text: str) -> dict:
     """Envia uma mensagem de texto para um número via Evolution API."""
 
@@ -21,7 +36,7 @@ def send_message(number: str, text: str) -> dict:
         "number": f'{number}@s.whatsapp.net',
         "text": text
     }
-    
+
     response = SESSION.post(
         URL_SEND_MESSAGES,
         json=payload,
