@@ -1,137 +1,115 @@
-import json
-import os
-import tempfile
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from config import CONVERSATIONS_DIR
+from sqlalchemy.exc import IntegrityError
+
+from storage.database import SessionLocal, Base, engine
+from storage.models import Conversation, Message
 from services.evolution import get_messages_by_number
 from bot.processor import process_message
 
 TIMEZONE = ZoneInfo("America/Sao_Paulo")
-
 MAX_HISTORY = 30
 
+# Cria as tabelas no banco caso ainda não existam (idempotente).
+Base.metadata.create_all(bind=engine)
 
-def _default_conversation(number, push_name):
-    return {
-        "number": number,
-        "push_name": push_name,
-        "messages": [],
-    }
+def _add_message(session, conversation, role, content, timestamp):
+    """Adiciona uma mensagem à conversa, ignorando se já existir uma idêntica."""
+    ja_existe = (
+        session.query(Message)
+        .filter_by(
+            conversation_id=conversation.id,
+            role=role,
+            content=content,
+            timestamp=timestamp,
+        )
+        .first()
+    )
+    if ja_existe:
+        return
 
-
-def _file_path(number):
-    return CONVERSATIONS_DIR / f"{number}.json"
-
-
-def load_conversation(number):
-    file_path = _file_path(number)
-
-    if not file_path.exists():
-        return None
-
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return json.load(file)
-    except json.JSONDecodeError:
-        return None
-
-
-def _write_conversation(number, conversation):
-    file_path = _file_path(number)
-
-    CONVERSATIONS_DIR.mkdir(parents=True, exist_ok=True)
-
-    tmp_fd, tmp_path = tempfile.mkstemp(dir=CONVERSATIONS_DIR, suffix=".tmp")
-    with os.fdopen(tmp_fd, "w", encoding="utf-8") as file:
-        json.dump(conversation, file, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, file_path)
+    session.add(Message(
+        conversation_id=conversation.id,
+        role=role,
+        content=content,
+        timestamp=timestamp,
+    ))
 
 
-def _import_history_from_evolution(number, push_name):
+def _import_history_from_evolution(session, conversation):
     """
-    Busca o histórico antigo direto na Evolution API pra esse número
-    e monta a conversa já no formato role/content/timestamp.
-    Usado só na primeira vez que o número aparece (sem JSON local ainda).
+    Busca o histórico antigo direto na Evolution API pra essa conversa
+    e salva no banco. Usado só na primeira vez que o número aparece
+    (conversa recém-criada, sem mensagens ainda).
     """
-    conversation = _default_conversation(number, push_name)
-
     try:
-        registros = get_messages_by_number(number)
+        registros = get_messages_by_number(conversation.number)
     except Exception as e:
-        print(f"Falha ao importar histórico da Evolution API pra {number}: {e}")
-        return conversation
+        print(f"Falha ao importar histórico da Evolution API pra {conversation.number}: {e}")
+        return
 
-    mensagens = []
     for registro in registros:
         msg = process_message(registro)
         if not msg or not msg["message"]:
             continue
 
-        mensagens.append({
-            "role": "assistant" if msg["from_me"] else "user",
-            "content": msg["message"],
-            "timestamp": msg["timestamp"],
-        })
+        _add_message(
+            session,
+            conversation,
+            role="assistant" if msg["from_me"] else "user",
+            content=msg["message"],
+            timestamp=msg["timestamp"],
+        )
 
-    # ordenar
-    mensagens.sort(key=lambda m: m["timestamp"])
 
-    conversation["messages"] = mensagens
+def _get_or_create_conversation(session, number, push_name):
+    conversation = session.query(Conversation).filter_by(number=number).one_or_none()
+
+    if conversation is None:
+        conversation = Conversation(number=number, push_name=push_name)
+        session.add(conversation)
+        session.flush()  # garante que conversation.id já existe antes de importar
+        _import_history_from_evolution(session, conversation)
+    elif push_name:
+        conversation.push_name = push_name
 
     return conversation
-
-
-def _ja_existe(conversation, role, content, timestamp):
-    """
-    Evita duplicar uma mensagem que já esteja no histórico (pode acontecer
-    quando o JSON local é recriado bem na hora que uma mensagem chega,
-    e ela acaba vindo tanto pela importação da Evolution API quanto pelo
-    fluxo normal do webhook).
-    """
-    for msg in conversation["messages"]:
-        if (
-            msg["role"] == role
-            and msg["content"] == content
-            and msg["timestamp"] == timestamp
-        ):
-            return True
-    return False
 
 
 def save_message(number, push_name, from_me, content, timestamp=None):
     """
-    Carrega a conversa (importando histórico antigo se for a primeira vez),
-    adiciona a mensagem no formato role/content/timestamp e salva no JSON.
-    Retorna a conversa atualizada.
+    Carrega a conversa (criando e importando histórico antigo se for a
+    primeira vez), adiciona a mensagem e salva no banco.
+    Retorna o objeto Conversation atualizado.
     """
-    if not content:
-        return load_conversation(number) or _default_conversation(number, push_name)
+    with SessionLocal() as session:
+        if not content:
+            conversation = session.query(Conversation).filter_by(number=number).one_or_none()
+            if conversation:
+                _ = conversation.messages  # força carregar antes de fechar a sessão
+            return conversation
 
-    conversation = load_conversation(number)
+        conversation = _get_or_create_conversation(session, number, push_name)
 
-    if conversation is None:
-        conversation = _import_history_from_evolution(number, push_name)
+        role = "assistant" if from_me else "user"
+        ts = timestamp or int(time.time())
 
-    if push_name:
-        conversation["push_name"] = push_name
+        _add_message(session, conversation, role, content, ts)
 
-    role = "assistant" if from_me else "user"
-    ts = timestamp or int(time.time())
+        try:
+            session.commit()
+        except IntegrityError:
 
-    if not _ja_existe(conversation, role, content, ts):
-        conversation["messages"].append({
-            "role": role,
-            "content": content,
-            "timestamp": ts,
-        })
-        conversation["messages"].sort(key=lambda m: m["timestamp"])
+            session.rollback()
 
-    _write_conversation(number, conversation)
+            conversation = session.query(Conversation).filter_by(number=number).one_or_none()
 
-    return conversation
+        if conversation:
+            _ = conversation.messages  # força carregar antes de fechar a sessão
+
+        return conversation
 
 
 def _format_timestamp(ts):
@@ -143,12 +121,14 @@ def get_openai_history(conversation, limit=MAX_HISTORY):
     if not conversation:
         return []
 
+    mensagens = sorted(conversation.messages, key=lambda m: m.timestamp)[-limit:]
+
     history = []
-    for msg in conversation["messages"][-limit:]:
-        time_prefix = f"[{_format_timestamp(msg['timestamp'])}] "
+    for msg in mensagens:
+        time_prefix = f"[{_format_timestamp(msg.timestamp)}] "
         history.append({
-            "role": msg["role"],
-            "content": time_prefix + msg["content"],
+            "role": msg.role,
+            "content": time_prefix + msg.content,
         })
 
     return history
