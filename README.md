@@ -1,20 +1,21 @@
 # Chatbot WhatsApp com IA
 
-Chatbot para WhatsApp desenvolvido em Python utilizando **FastAPI**, **Evolution API**, **OpenAI** e **SQLite**.
+Chatbot para WhatsApp desenvolvido em Python utilizando **FastAPI**, **Evolution API**, **OpenAI API**, **SQLAlchemy** e **SQLite**.
 
-O projeto recebe mensagens através de um webhook da Evolution API, armazena o histórico das conversas em banco de dados, utiliza esse contexto para gerar respostas com a OpenAI e envia automaticamente a resposta ao usuário pelo WhatsApp.
-
+A aplicação recebe mensagens através da Evolution API, armazena o histórico das conversas em banco de dados, utiliza esse contexto para gerar respostas com a OpenAI e envia automaticamente a resposta ao usuário pelo WhatsApp.
 ---
 
 ## Funcionalidades
 
-* Integração com a Evolution API
-* Webhook para recebimento de mensagens
-* Integração com a OpenAI
-* Histórico das conversas em SQLite
-* Construção automática do contexto enviado para a OpenAI
-* Respostas automáticas pelo WhatsApp
-* Estrutura modular para facilitar manutenção e escalabilidade
+* Integração com Evolution API
+* Webhook para recebimento de mensagens do WhatsApp
+* Processamento e normalização de mensagens recebidas
+* Integração com OpenAI API
+* Armazenamento de usuários e histórico de mensagens em SQLite
+* Recuperação automática de contexto para conversas
+* Geração de respostas utilizando histórico anterior
+* Envio automático de respostas pelo WhatsApp
+* Estrutura modular para facilitar manutenção e evolução do projeto
 
 ---
 
@@ -30,24 +31,32 @@ Evolution API
 Webhook FastAPI
     |
     ▼
-Processamento da mensagem
+Message Processor
     |
-    +------------+
-    |            |
-    ▼            ▼
-SQLite       Contexto
-(usuário)       |
-                ▼
-              OpenAI
-                |
-                ▼
-          Resposta gerada
-                |
-                ▼
-          Evolution API
-                |
-                ▼
-            WhatsApp
+    ▼
+Mensagem normalizada
+    |
+    +----------------+
+    |                |
+    ▼                ▼
+SQLite          Histórico
+    |                |
+    +-------+--------+
+            |
+            ▼
+        OpenAI API
+            |
+            ▼
+     Resposta gerada
+            |
+            ▼
+     Salvar resposta
+            |
+            ▼
+     Evolution API
+            |
+            ▼
+        WhatsApp
 ```
 
 ---
@@ -59,26 +68,26 @@ chatbot/
 ├── app/
 │   ├── main.py
 │   ├── routes/
-│   │   ├── webhook.py
-│   │   └── chat.py
+│   │   ├── webhook.py       
+│   │   └── chat.py          
 │   └── schemas/
-│       └── message.py
+│       └── message.py      
 │
 ├── bot/
-│   └── processor.py
+│   └── message_processor.py # processamento e normalização das mensagens
 │
 ├── services/
-│   ├── chatbot.py          # fluxo principal do chatbot
-│   ├── evolution.py        # integração com Evolution API
-│   └── openai.py           # integração com OpenAI
+│   ├── chatbot.py           # fluxo principal da conversa com IA
+│   ├── evolution.py         # integração com Evolution API
+│   └── openai.py            # integração com OpenAI API
 │
 ├── database/
-│   ├── database.py         # conexão com SQLite
-│   ├── models.py           # modelos SQLAlchemy
-│   └── conversations.py    # operações de persistência
+│   ├── connection.py        # conexão SQLAlchemy
+│   ├── models.py            # modelos ORM
+│   └── conversations.py     # operações de persistência
 │
 ├── data/
-│   └── conversations.db
+│   └── conversations.db     # banco SQLite
 │
 ├── config.py
 ├── requirements.txt
@@ -100,17 +109,17 @@ chatbot/
 
 ---
 
-## Como funciona
+## Funcionamento
 
-Quando uma nova mensagem chega pelo WhatsApp:
+Quando uma mensagem é recebida:
 
-1. A Evolution API envia a mensagem para o webhook da aplicação.
-2. O webhook processa a mensagem recebida.
-3. A mensagem é salva no banco de dados.
-4. O histórico da conversa é recuperado.
-5. O histórico é convertido para o formato esperado pela OpenAI.
-6. A OpenAI gera uma resposta utilizando o contexto completo da conversa.
-7. A resposta é salva no banco.
+1. A Evolution API envia o evento para o webhook da aplicação.
+2. O webhook valida o evento recebido para aceitar apenas eventos `messages.upsert`, responsáveis pela criação/recebimento de novas mensagens.
+3. O `message_processor` filtra e transforma a mensagem recebida em um formato normalizado.
+4. A mensagem do usuário é salva no banco.
+5. O histórico da conversa é recuperado.
+6. O histórico é enviado para a OpenAI como contexto.
+7. A resposta gerada pela IA é armazenada.
 8. A resposta é enviada ao usuário através da Evolution API.
 
 ---
@@ -120,8 +129,8 @@ Quando uma nova mensagem chega pelo WhatsApp:
 Clone o projeto:
 
 ```bash
-git clone https://github.com/devthayron/chatbot.git
-cd chatbot
+git clone https://github.com/devthayron/chatbot-evo.git
+cd chatbot-evo
 ```
 
 Crie o ambiente virtual:
@@ -129,6 +138,8 @@ Crie o ambiente virtual:
 ```bash
 python -m venv venv
 ```
+
+Ative o ambiente:
 
 Linux:
 
@@ -162,12 +173,14 @@ INSTANCE=
 API_KEY_EVO=
 ```
 
-| Variável          | Descrição                    |
-| ------------------ | ------------------------------ |
-| `OPENAI_API_KEY` | Chave da API da OpenAI         |
-| `BASE_URL`       | URL da Evolution API           |
-| `INSTANCE`       | Nome da instância do WhatsApp |
-| `API_KEY_EVO`    | API Key da Evolution API       |
+Variáveis:
+
+| Variável         | Descrição                              |
+| ---------------- | -------------------------------------- |
+| `OPENAI_API_KEY` | Chave da OpenAI API                    |
+| `BASE_URL`       | URL da Evolution API                   |
+| `INSTANCE`       | Nome da instância do WhatsApp          |
+| `API_KEY_EVO`    | Chave de autenticação da Evolution API |
 
 ---
 
@@ -185,7 +198,7 @@ A API ficará disponível em:
 http://localhost:8000
 ```
 
-A documentação automática pode ser acessada em:
+Documentação automática:
 
 ```text
 http://localhost:8000/docs
@@ -193,45 +206,52 @@ http://localhost:8000/docs
 
 ---
 
-## Banco de dados
+# Banco de dados
 
-O histórico das conversas é armazenado automaticamente em um banco SQLite localizado em:
+O sistema utiliza SQLite para persistência inicial.
+
+Banco:
 
 ```text
 data/
 └── conversations.db
 ```
+
 ## Modelo de dados
 
-O sistema utiliza **SQLite** para persistência inicial.
+### Tabela `users`
 
-### Tabela: `users`
+| Campo  | Tipo    | Descrição           |
+| ------ | ------- | ------------------- |
+| id     | INTEGER | Identificador único |
+| name   | TEXT    | Nome do contato     |
+| number | TEXT    | Número do WhatsApp  |
 
-| Campo | Tipo | Descrição |
-|--------|------|-----------|
-| id | INTEGER | Identificador único do usuário |
-| name | TEXT | Nome do usuário |
-| number | TEXT | Número do WhatsApp |
+---
 
-### Tabela: `conversation`
+### Tabela `conversations`
 
-| Campo | Tipo | Descrição |
-|--------|------|-----------|
-| id | INTEGER | Identificador único da conversa |
-| user_id | INTEGER | Chave estrangeira para `usuarios.id` |
-| role | TEXT | Origem da mensagem (`cliente` ou `bot`) |
-| content | TEXT | Conteúdo da mensagem |
-| type_message | TEXT | Tipo da mensagem (texto, imagem, áudio, etc.) |
-| timestamp | DATETIME | Data e hora da mensagem |
+| Campo        | Tipo     | Descrição                                               |
+| ------------ | -------- | ------------------------------------------------------- |
+| id           | INTEGER  | Identificador único da mensagem                         |
+| user_id      | INTEGER  | Referência ao usuário                                   |
+| role         | TEXT     | Origem da mensagem (`user` ou `assistant`)              |
+| content      | TEXT     | Conteúdo da mensagem                                    |
+| message_type | TEXT     | Tipo da mensagem (`conversation`, `imageMessage`, etc.) |
+| timestamp    | DATETIME | Data e hora da mensagem                                 |
 
-### Relacionamento
+---
 
-| Origem | Destino | Cardinalidade |
-|---------|---------|---------------|
-| `user.id` | `conversation.user_id` | 1:N (um usuário possui várias conversas) |
+## Relacionamento
 
-Cada conversa é vinculada a um usuário, permitindo recuperar todo o histórico antes da geração de uma nova resposta pela IA.
+| Origem     | Destino                | Cardinalidade |
+| ---------- | ---------------------- | ------------- |
+| `users.id` | `conversation.user_id` | 1:N           |
 
+Um usuário pode possuir várias mensagens no histórico.
+
+Esse histórico é utilizado como contexto antes da geração de uma nova resposta pela IA.
+> Somente as ultimas 30 mensagens como padrão 
 
 ---
 
@@ -240,9 +260,10 @@ Cada conversa é vinculada a um usuário, permitindo recuperar todo o histórico
 * Suporte a múltiplas instâncias do WhatsApp
 * Migração para PostgreSQL
 * Memória de longo prazo
+* Sistema RAG com documentos
 * Painel administrativo
 * Testes automatizados
-* logging para auditoria
+* Logging estruturado para auditoria
 
 ---
 
@@ -250,4 +271,5 @@ Cada conversa é vinculada a um usuário, permitindo recuperar todo o histórico
 
 **Thayron Higlânder Santos**
 
-* LinkedIn: https://www.linkedin.com/in/thayron-higlander
+LinkedIn:
+https://www.linkedin.com/in/thayron-higlander

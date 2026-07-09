@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.schemas.message import ChatRequest
-from services.chatbot import reply
+from services.chatbot import process_conversation
 from services.evolution import evolution_service
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 @router.post("/")
 def chat(data: ChatRequest):
 
-    response = reply(
+    response = process_conversation(
         number=data.number,
         push_name=data.push_name,
         message=data.message,

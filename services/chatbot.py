@@ -5,13 +5,13 @@ from database.conversations import (
 )
 
 
-def reply(
+def process_conversation(
     *,
     number: str,
     push_name: str | None,
     message: str,
-    from_me: bool = False,
     timestamp: int | None = None,
+    message_type: str,
 ) -> str:
     """
     Processa uma conversa com a IA.
@@ -22,15 +22,16 @@ def reply(
     - Salva a resposta.
     """
 
-    conversation = save_message(
+    user = save_message(
         number=number,
         push_name=push_name,
-        from_me=from_me,
+        from_me=False,
         content=message,
         timestamp=timestamp,
+        message_type=message_type
     )
 
-    history = get_openai_history(conversation)
+    history = get_openai_history(user)
 
     response = openai_service.generate_response(history)
 

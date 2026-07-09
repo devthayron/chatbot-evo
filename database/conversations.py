@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from database.connection import SessionLocal, Base, engine
 from database.models import Conversation, User
 from services.evolution import evolution_service
-from bot.processor import process_message
+from bot.message_processor import normalize_message
 
 
 TIMEZONE = ZoneInfo("America/Sao_Paulo")
@@ -78,7 +78,7 @@ def _import_history_from_evolution(session, user):
 
     for record in records:
 
-        msg = process_message(record)
+        msg = normalize_message(record)
 
 
         if not msg or not msg.get("message"):
@@ -173,7 +173,7 @@ def save_message(
     push_name,
     from_me,
     content,
-    message_type="text",
+    message_type='conversation',
     timestamp=None,
 ):
 

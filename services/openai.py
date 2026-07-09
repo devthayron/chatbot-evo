@@ -4,10 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROMPT = {
-    "id": "pmpt_6a4c03086f2081939978a699ca50ad7d0fe8ed8ab07bf32a",
+    "id": "pmpt_6a4c03086f2081939978a699ca50ad7d0fe8ed8ab07bf32a",  # ID do prompt configurado no OpenAI Platform
     "version": "3"
 }
-
 
 class OpenAIService:
     def __init__(self):
