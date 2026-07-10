@@ -142,25 +142,25 @@ data/
 
 ## Usuários (`users`)
 
-| Campo  | Descrição                |
-| ------ | ------------------------ |
+| Campo  | Descrição               |
+| ------ | ------------------------- |
 | id     | Identificador do usuário |
-| name   | Nome do contato          |
+| name   | Nome do contato           |
 | number | Número do WhatsApp       |
 
 ---
 
 ## Mensagens (`messages`)
 
-| Campo        | Descrição                       |
-| ------------ | ------------------------------- |
-| id           | Identificador interno           |
+| Campo        | Descrição                      |
+| ------------ | -------------------------------- |
+| id           | Identificador interno            |
 | message_id   | Identificador único da mensagem |
 | user_id      | Usuário relacionado             |
 | role         | Usuário ou assistente           |
-| content      | Texto da mensagem               |
-| message_type | Tipo da mensagem                |
-| sent_at      | Data e hora                     |
+| content      | Texto da mensagem                |
+| message_type | Tipo da mensagem                 |
+| sent_at      | Data e hora                      |
 
 ---
 
@@ -194,16 +194,18 @@ API_KEY_EVO=
 
 Variáveis:
 
-| Variável       | Descrição                 |
-| -------------- | ------------------------- |
-| OPENAI_API_KEY | Chave da OpenAI           |
+| Variável      | Descrição                |
+| -------------- | -------------------------- |
+| OPENAI_API_KEY | Chave da OpenAI            |
 | BASE_URL       | Endereço da Evolution API |
 | INSTANCE       | Instância do WhatsApp     |
-| API_KEY_EVO    | Chave da Evolution API    |
+| API_KEY_EVO    | Chave da Evolution API     |
 
 ---
 
 # Executando
+
+Para executar a aplicação localmente:
 
 ```bash
 uvicorn app.main:app --reload
@@ -217,14 +219,25 @@ http://localhost:8000/docs
 
 ---
 
+# Desenvolvimento
+
+Durante o desenvolvimento, a aplicação FastAPI roda localmente e utiliza ngrok para expor o webhook publicamente, permitindo a comunicação com a Evolution API.
+
+Mais detalhes sobre execução local e configuração do ambiente estão disponíveis em:
+
+[Documentação de desenvolvimento](docs/dev.md)
+
 # Próximos passos:
 
-* Migração para PostgreSQL
-* Dockerização da aplicação
-* Testes automatizados
-* Sistema de logs
-* RAG com documentos
-* Dashboard administrativo
+# Próximos passos
+
+- Testes automatizados
+- Sistema de logs
+- Dockerização da aplicação
+- Migração para PostgreSQL
+- Dashboard administrativo
+- RAG com documentos
+
 ---
 
 # Autor

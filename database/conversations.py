@@ -45,7 +45,7 @@ def add_message(
     )
 
 
-def convert_timestamp(timestamp):
+def timestamp_to_datetime(timestamp):
 
     if isinstance(timestamp, int):
         return datetime.fromtimestamp(
@@ -104,11 +104,10 @@ def import_history_from_evolution(user_id):
                     "message_type",
                     "conversation",
                 ),
-                sent_at=convert_timestamp(
+                sent_at=timestamp_to_datetime(
                     msg["timestamp"]
                 ),
             )
-
 
         try:
             session.commit()
@@ -119,7 +118,7 @@ def import_history_from_evolution(user_id):
 
 
 def ensure_history(user_id):
-
+    
     with SessionLocal() as session:
 
         exists = (
@@ -149,7 +148,7 @@ def save_message(
     if timestamp is None:
         timestamp = datetime.now(TIMEZONE)
 
-    sent_at = convert_timestamp(timestamp)
+    sent_at = timestamp_to_datetime(timestamp)
 
 
     with SessionLocal() as session:
