@@ -2,6 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def extract_webhook_message(payload):
 
     event = payload.get("event")
@@ -50,10 +51,10 @@ MESSAGE_TYPE_HANDLERS = {
 def handle_message_type(raw_message):
     message_type = raw_message.get("messageType")
 
-    handle = MESSAGE_TYPE_HANDLERS.get(message_type)
+    handler = MESSAGE_TYPE_HANDLERS.get(message_type)
 
-    if handle:
-        return message_type, handle(raw_message)
+    if handler:
+        return message_type, handler(raw_message)
 
     logger.warning("Tipo de mensagem não tratado | message_type=%s", message_type)
     return message_type, f"[Mensagem do tipo: {message_type}]"
@@ -75,7 +76,7 @@ def normalize_message(raw_message):
     timestamp = raw_message.get("messageTimestamp")
     push_name = raw_message.get("pushName")
 
-    # Apenas mensagens de texto por enquanto
+    # Extrai o conteúdo conforme o tipo da mensagem.
     message_type, content = handle_message_type(raw_message)
     
     # Número do contato da conversa
@@ -86,7 +87,7 @@ def normalize_message(raw_message):
         return None
 
     return {
-        'message_id': message_id,
+        "message_id": message_id,
         "from_me": from_me,
         "number": number,
         "push_name": push_name,

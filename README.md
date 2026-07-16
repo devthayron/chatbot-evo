@@ -16,6 +16,7 @@ Sistema de agente de IA integrado ao WhatsApp por meio da Evolution API, capaz d
 * Controle de mensagens duplicadas
 * Envio automático das respostas pelo WhatsApp
 * Sistema de logs estruturado (console e arquivo)
+* Testes automatizados com Pytest para o message_processor.py
 
 ---
 
