@@ -44,7 +44,7 @@ def test_add_message_inserts_new_message(db_session):
     assert saved.user_id == user.id
 
 
-def test_add_message_ignores_duplicate_message_id(db_session):
+def test_add_message_ignores_duplicate(db_session):
     """
     Ignora mensagens que possuem o mesmo message_id.
     """
