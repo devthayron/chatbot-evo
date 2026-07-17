@@ -16,7 +16,7 @@ Sistema de agente de IA integrado ao WhatsApp por meio da Evolution API, capaz d
 * Controle de mensagens duplicadas
 * Envio automático das respostas pelo WhatsApp
 * Sistema de logs estruturado (console e arquivo)
-* Testes automatizados com Pytest para o message_processor.py
+* Testes automatizados com Pytest
 
 ---
 
@@ -92,34 +92,48 @@ Enviar resposta no WhatsApp
 
 ```text
 whatsapp-ai-agent/
-├── app/								# aplicação e rotas da API
+├── app/                              # aplicação FastAPI
 │   ├── main.py
-│   └── routes/
-│       ├── webhook.py
-│       └── chat.py
+│   ├── routes/
+│   │   ├── webhook.py
+│   │   └── chat.py
+│   └── schemas/
+│       └── message.py
 │
-├── bot/                                # processamento de conversa
+├── bot/                              # processamento das mensagens
 │   └── message_processor.py
 │
-├── services/                           # integrações e regras do sistema
+├── services/                         # integrações externas e regras
 │   ├── agent.py
 │   ├── evolution.py
 │   └── openai.py
 │
-├── database/                           # modelos e operações do banco de dados
+├── database/                         # persistência e modelos
 │   ├── connection.py
 │   ├── models.py
 │   ├── users.py
 │   └── conversations.py
 │
-├── data/                               # arquivos de dados da aplicação
+├── tests/                            # testes automatizados
+│   ├── conftest.py
+│   ├── test_agent.py
+│   ├── test_conversations.py
+│   ├── test_message_processor.py
+│   ├── test_routes.py
+│   └── test_users.py
+│
+├── docs/
+│   └── dev.md
+│
+├── data/
 │   └── conversations.db
 │
-├── logs/                               # arquivos de log da aplicação
+├── logs/
 │   └── app.log
 │
-├── logger.py                   		# configuração do sistema de logs
 ├── config.py
+├── logger.py
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
@@ -134,6 +148,15 @@ whatsapp-ai-agent/
 * Evolution API
 * SQLAlchemy
 * SQLite
+
+---
+
+# Aviso
+
+> **Importante:** este projeto utiliza a Evolution API para integração com o WhatsApp. O uso de automações pode violar os Termos de Serviço do WhatsApp e resultar em restrições ou banimento da conta utilizada.
+
+Para ambientes de produção, avalie o uso da API oficial do WhatsApp quando aplicável.
+
 
 ---
 
@@ -230,9 +253,27 @@ As instruções para executar a aplicação e a configuração do ambiente de de
 
 ---
 
+
+# Testes
+
+O projeto possui testes automatizados utilizando **Pytest**.
+
+Para executar todos os testes:
+
+```bash
+python -m pytest -v
+```
+
+Para executar um arquivo específico:
+
+```bash
+python -m pytest tests/test_agent.py -v
+```
+
+---
+
 # Próximos passos
 
-* Testes automatizados
 * Dockerização da aplicação
 * Migração para PostgreSQL
 * Dashboard administrativo

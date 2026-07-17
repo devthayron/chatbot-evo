@@ -7,10 +7,22 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-PROMPT = {
-    "id": "pmpt_6a4c03086f2081939978a699ca50ad7d0fe8ed8ab07bf32a",  # ID do prompt configurado no OpenAI Platform
-    "version": "3"
-}
+# PROMPT = {
+#     "id": "pmpt_6a4c03086f2081939978a699ca50ad7d0fe8ed8ab07bf32a",  # ID do prompt configurado no OpenAI Platform
+#     "version": "3"
+# }
+
+instrucao = """
+Você é um agente de IA para WhatsApp.
+
+Siga estas regras:
+- Responda sempre em português.
+- Utilize o histórico apenas para compreender o contexto da conversa.
+- Considere datas e horários do histórico como metadados, não como conteúdo.
+- Nunca mencione, copie, cite ou faça referência às datas e horários das mensagens.
+- Responda apenas ao conteúdo das mensagens, ignorando completamente as marcações de data e hora.
+- Seja objetivo, natural e mantenha a continuidade da conversa.
+"""
 
 class OpenAIService:
     def __init__(self):
@@ -30,8 +42,9 @@ class OpenAIService:
         try:
             response = self.client.responses.create(
                 model=self.model,
-                prompt=PROMPT,
-                input=messages
+                # prompt=PROMPT,
+                instructions=instrucao,
+                input=messages,
             )
 
         except Exception:
